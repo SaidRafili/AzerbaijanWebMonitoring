@@ -1,43 +1,49 @@
+# dashboard.py
 import os
 import time
 import pandas as pd
 import streamlit as st
 
-st.set_page_config(page_title="🌐 Azerbaijani Website Traffic Dashboard", layout="wide")
-
-# Shared CSV path (Render persistent disk)
-csv_path = "/data/website_ai_summaries.csv" if os.path.exists("/data") else "website_ai_summaries.csv"
+st.set_page_config(page_title="Azerbaijani Website Traffic Dashboard", layout="wide")
 
 st.title("🌐 Azerbaijani Website Traffic Dashboard")
+st.subheader("📊 Live visitor estimations (Forex-style updates)")
 
-def run_initial_scrape():
-    """Run one quick data collection if file is missing."""
-    st.info("Running first data collection... please wait 1–2 minutes.")
-    os.system("python forex.py")
-    time.sleep(5)
-
-def load_data():
-    if not os.path.exists(csv_path):
-        run_initial_scrape()
-    try:
-        return pd.read_csv(csv_path)
-    except Exception:
-        return pd.DataFrame()
+DATA_PATH = "/data/website_ai_summaries.csv"
 
 placeholder = st.empty()
 
-# Continuous update loop
+def load_data():
+    if os.path.exists(DATA_PATH):
+        try:
+            df = pd.read_csv(DATA_PATH)
+            return df
+        except Exception:
+            return pd.DataFrame()
+    return pd.DataFrame()
+
 while True:
     df = load_data()
+
     if df.empty:
-        placeholder.warning("⏳ No data yet — waiting for first results...")
+        placeholder.warning("⏳ Waiting for first results...")
     else:
-        with placeholder.container():
-            st.subheader(f"📊 Showing {len(df)} domains")
-            st.dataframe(
-                df.sort_values("estimated_visitors", ascending=False)
-                  .reset_index(drop=True)[["domain", "summary", "estimated_visitors", "timestamp"]]
-            )
-            st.line_chart(df.set_index("domain")["estimated_visitors"])
+        expected_cols = ["index", "domain", "summary", "estimated_visitors", "timestamp"]
+        available_cols = [c for c in expected_cols if c in df.columns]
+        if available_cols:
+            with placeholder.container():
+                st.dataframe(
+                    df[available_cols]
+                    .sort_values("index", ascending=True)
+                    .reset_index(drop=True),
+                    use_container_width=True
+                )
+
+                st.bar_chart(df.set_index("domain")["estimated_visitors"], height=300)
+
+                st.caption(f"Last update: {time.strftime('%Y-%m-%d %H:%M:%S UTC', time.gmtime())}")
+        else:
+            placeholder.info("⚙️ Waiting for complete data fields...")
+
     time.sleep(10)
     st.rerun()
