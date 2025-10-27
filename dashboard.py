@@ -18,4 +18,4 @@ else:
 
 # Auto-refresh every minute
 time.sleep(60)
-st.experimental_rerun()
+st.rerun()
