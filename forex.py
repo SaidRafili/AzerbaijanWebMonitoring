@@ -1,4 +1,4 @@
-import os, re, math, random, time, requests, pandas as pd
+import os, re, math, random, time, csv, requests, pandas as pd
 from bs4 import BeautifulSoup
 from sumy.parsers.plaintext import PlaintextParser
 from sumy.nlp.tokenizers import Tokenizer
@@ -7,10 +7,11 @@ import nltk
 
 nltk.download('punkt', quiet=True)
 nltk.download('punkt_tab', quiet=True)
+
 summarizer = LexRankSummarizer()
 
-SCRAPE_INTERVAL = int(os.getenv("SCRAPE_INTERVAL", "3600"))
 MAX_DOMAINS = int(os.getenv("MAX_DOMAINS", "100"))
+DATA_PATH = "/data/website_ai_summaries.csv" if os.path.exists("/data") else "website_ai_summaries.csv"
 
 def fetch_homepage(domain):
     url = f"http://{domain}" if not domain.startswith("http") else domain
@@ -18,11 +19,11 @@ def fetch_homepage(domain):
         r = requests.get(url, timeout=10, headers={"User-Agent": "Mozilla/5.0"})
         if r.status_code == 200:
             soup = BeautifulSoup(r.text, "lxml")
-            for tag in soup(["script","style","noscript","header","footer","nav"]): tag.decompose()
+            for tag in soup(["script", "style", "noscript", "header", "footer", "nav"]):
+                tag.decompose()
             text = re.sub(r"\s+", " ", soup.get_text(" ", strip=True))
             kb = len(r.content) / 1024
-            links = len([a for a in soup.find_all("a", href=True)
-                         if domain in a["href"] or a["href"].startswith("/")])
+            links = len([a for a in soup.find_all("a", href=True) if domain in a["href"] or a["href"].startswith("/")])
             return text, kb, links, r.elapsed.total_seconds()
     except Exception:
         pass
@@ -39,42 +40,50 @@ def estimate_visitors(domain, kb, links, load):
             indexed = int(m.group(1).replace(",", ""))
     except Exception:
         pass
-    visitors = base + math.log1p(indexed)*200 + (1/(load+0.5))*100
-    return int(min(visitors*random.uniform(0.9,1.1),200000)), indexed
+    visitors = base + math.log1p(indexed) * 200 + (1 / (load + 0.5)) * 100
+    return int(min(visitors * random.uniform(0.9, 1.1), 200000)), indexed
 
 def generate_summary(text):
     if not text or len(text.split()) < 20:
         return "No readable content."
     try:
         parser = PlaintextParser.from_string(text, Tokenizer("english"))
-        sent_count = 2 if len(text.split())<400 else 3 if len(text.split())<800 else 4
+        sent_count = 2 if len(text.split()) < 400 else 3 if len(text.split()) < 800 else 4
         summary_sentences = summarizer(parser.document, sent_count)
         return " ".join(str(s) for s in summary_sentences)
-    except Exception as e:
-        return f"Summarization failed: {str(e)}"
+    except Exception:
+        return "Summarization failed."
 
-def run_cycle():
-    with open("azurl.txt","r",encoding="utf-8") as f:
-        domains=[d.strip() for d in f if d.strip()]
-    results=[]
-    for i,domain in enumerate(domains[:MAX_DOMAINS],1):
+def append_csv_row(row):
+    file_exists = os.path.isfile(DATA_PATH)
+    with open(DATA_PATH, "a", newline="", encoding="utf-8-sig") as f:
+        writer = csv.DictWriter(f, fieldnames=row.keys())
+        if not file_exists:
+            writer.writeheader()
+        writer.writerow(row)
+
+def run_once():
+    with open("azurl.txt", "r", encoding="utf-8") as f:
+        domains = [d.strip() for d in f if d.strip()]
+    for i, domain in enumerate(domains[:MAX_DOMAINS], 1):
         text, kb, links, load = fetch_homepage(domain)
         summary = generate_summary(text)
-        visitors, indexed = estimate_visitors(domain,kb,links,load)
-        results.append({
+        visitors, indexed = estimate_visitors(domain, kb, links, load)
+        row = {
+            "index": i,
             "domain": domain,
             "summary": summary,
-            "homepage_kb": round(kb,2),
+            "homepage_kb": round(kb, 2),
             "internal_links": links,
             "indexed_pages": indexed,
             "estimated_visitors": visitors,
-            "timestamp": pd.Timestamp.now()
-        })
+            "timestamp": pd.Timestamp.now(),
+        }
+        append_csv_row(row)
         print(f"[{i:03}] {domain:<25} → {visitors:>6} visitors")
-    pd.DataFrame(results).to_csv("website_ai_summaries.csv", index=False)
+        time.sleep(3)  # 3s delay to simulate live streaming
 
 if __name__ == "__main__":
     while True:
-        run_cycle()
-        print(f"Cycle complete. Waiting {SCRAPE_INTERVAL//60} minutes...")
-        time.sleep(SCRAPE_INTERVAL)
+        run_once()
+        print("Cycle complete. Restarting...\n")
