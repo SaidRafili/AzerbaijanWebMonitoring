@@ -1,15 +1,17 @@
-import os, re, math, random, time, csv, requests, pandas as pd
+import os, re, math, random, time, requests, pandas as pd
 from bs4 import BeautifulSoup
 from sumy.parsers.plaintext import PlaintextParser
 from sumy.nlp.tokenizers import Tokenizer
 from sumy.summarizers.lex_rank import LexRankSummarizer
 import nltk
 
+# Setup
 nltk.download('punkt', quiet=True)
 nltk.download('punkt_tab', quiet=True)
-
 summarizer = LexRankSummarizer()
 
+# Config
+SCRAPE_INTERVAL = int(os.getenv("SCRAPE_INTERVAL", "3600"))
 MAX_DOMAINS = int(os.getenv("MAX_DOMAINS", "100"))
 DATA_PATH = "/data/website_ai_summaries.csv" if os.path.exists("/data") else "website_ai_summaries.csv"
 
@@ -54,36 +56,28 @@ def generate_summary(text):
     except Exception:
         return "Summarization failed."
 
-def append_csv_row(row):
-    file_exists = os.path.isfile(DATA_PATH)
-    with open(DATA_PATH, "a", newline="", encoding="utf-8-sig") as f:
-        writer = csv.DictWriter(f, fieldnames=row.keys())
-        if not file_exists:
-            writer.writeheader()
-        writer.writerow(row)
-
-def run_once():
+def run_cycle():
     with open("azurl.txt", "r", encoding="utf-8") as f:
         domains = [d.strip() for d in f if d.strip()]
+    results = []
     for i, domain in enumerate(domains[:MAX_DOMAINS], 1):
         text, kb, links, load = fetch_homepage(domain)
         summary = generate_summary(text)
         visitors, indexed = estimate_visitors(domain, kb, links, load)
-        row = {
-            "index": i,
+        results.append({
             "domain": domain,
             "summary": summary,
             "homepage_kb": round(kb, 2),
             "internal_links": links,
             "indexed_pages": indexed,
             "estimated_visitors": visitors,
-            "timestamp": pd.Timestamp.now(),
-        }
-        append_csv_row(row)
+            "timestamp": pd.Timestamp.now()
+        })
         print(f"[{i:03}] {domain:<25} → {visitors:>6} visitors")
-        time.sleep(3)  # 3s delay to simulate live streaming
+    pd.DataFrame(results).to_csv(DATA_PATH, index=False, encoding="utf-8-sig")
 
 if __name__ == "__main__":
     while True:
-        run_once()
-        print("Cycle complete. Restarting...\n")
+        run_cycle()
+        print(f"Cycle complete. Waiting {SCRAPE_INTERVAL//60} minutes...")
+        time.sleep(SCRAPE_INTERVAL)
