@@ -9,6 +9,9 @@ nltk.download('punkt', quiet=True)
 nltk.download('punkt_tab', quiet=True)
 summarizer = LexRankSummarizer()
 
+SCRAPE_INTERVAL = int(os.getenv("SCRAPE_INTERVAL", "3600"))
+MAX_DOMAINS = int(os.getenv("MAX_DOMAINS", "100"))
+
 def fetch_homepage(domain):
     url = f"http://{domain}" if not domain.startswith("http") else domain
     try:
@@ -54,7 +57,7 @@ def run_cycle():
     with open("azurl.txt","r",encoding="utf-8") as f:
         domains=[d.strip() for d in f if d.strip()]
     results=[]
-    for i,domain in enumerate(domains[:100],1):
+    for i,domain in enumerate(domains[:MAX_DOMAINS],1):
         text, kb, links, load = fetch_homepage(domain)
         summary = generate_summary(text)
         visitors, indexed = estimate_visitors(domain,kb,links,load)
@@ -73,5 +76,5 @@ def run_cycle():
 if __name__ == "__main__":
     while True:
         run_cycle()
-        print("Cycle complete. Waiting 1 hour...")
-        time.sleep(3600)
+        print(f"Cycle complete. Waiting {SCRAPE_INTERVAL//60} minutes...")
+        time.sleep(SCRAPE_INTERVAL)
