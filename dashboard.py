@@ -9,7 +9,7 @@ st.set_page_config(page_title="Azerbaijani Website Traffic Dashboard", layout="w
 st.title("🌐 Azerbaijani Website Traffic Dashboard")
 st.subheader("📊 Live visitor estimations (Forex-style updates)")
 
-DATA_PATH = "/data/website_ai_summaries.csv"
+DATA_PATH = "/website_ai_summaries.csv"
 
 placeholder = st.empty()
 
