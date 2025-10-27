@@ -30,4 +30,7 @@ while True:
             st.subheader(f"📊 Latest {len(df)} Domains")
             st.dataframe(df[["domain", "summary", "estimated_visitors", "timestamp"]].sort_values("timestamp", ascending=False))
             st.line_chart(df.set_index("domain")["estimated_visitors"])
-    time.sleep(5)  # update every 5 seconds
+# Auto-refresh every minute
+time.sleep(5)
+st.rerun()
+
