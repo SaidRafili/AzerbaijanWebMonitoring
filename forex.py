@@ -12,7 +12,7 @@ summarizer = LexRankSummarizer()
 
 # Config
 SCRAPE_INTERVAL = int(os.getenv("SCRAPE_INTERVAL", "3600"))
-MAX_DOMAINS = int(os.getenv("MAX_DOMAINS", "100"))
+MAX_DOMAINS = int(os.getenv("MAX_DOMAINS", "5"))
 DATA_PATH = "/data/website_ai_summaries.csv" if os.path.exists("/data") else "website_ai_summaries.csv"
 
 def fetch_homepage(domain):
