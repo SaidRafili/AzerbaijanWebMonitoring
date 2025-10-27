@@ -3,8 +3,11 @@ services:
     name: web-traffic-dashboard
     env: python
     buildCommand: "pip install -r requirements.txt"
-    startCommand: "streamlit run dashboard.py --server.port 10000 --server.address 0.0.0.0"
+    startCommand: "streamlit run dashboard.py --server.port $PORT --server.address 0.0.0.0"
     plan: free
+    disks:
+      - name: trafficdata
+        mountPath: /data
     envVars:
       - key: SCRAPE_INTERVAL
         value: "3600"
@@ -17,8 +20,15 @@ services:
     buildCommand: "pip install -r requirements.txt"
     startCommand: "python forex.py"
     plan: free
+    disks:
+      - name: trafficdata
+        mountPath: /data
     envVars:
       - key: SCRAPE_INTERVAL
         value: "3600"
       - key: MAX_DOMAINS
         value: "100"
+
+disks:
+  - name: trafficdata
+    sizeGB: 1
