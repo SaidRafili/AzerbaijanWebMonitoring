@@ -8,11 +8,6 @@ services:
     disks:
       - name: trafficdata
         mountPath: /data
-    envVars:
-      - key: SCRAPE_INTERVAL
-        value: "3600"
-      - key: MAX_DOMAINS
-        value: "100"
 
   - type: worker
     name: traffic-scraper
@@ -23,11 +18,6 @@ services:
     disks:
       - name: trafficdata
         mountPath: /data
-    envVars:
-      - key: SCRAPE_INTERVAL
-        value: "3600"
-      - key: MAX_DOMAINS
-        value: "100"
 
 disks:
   - name: trafficdata
