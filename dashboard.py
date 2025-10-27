@@ -34,3 +34,6 @@ while True:
 time.sleep(5)
 st.rerun()
 
+if not os.path.exists(csv_path):
+    st.info("Running initial data collection...")
+    os.system("python forex.py")
