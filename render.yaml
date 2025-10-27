@@ -1,13 +1,24 @@
 services:
   - type: web
-    name: website-traffic-dashboard
+    name: web-traffic-dashboard
     env: python
     buildCommand: "pip install -r requirements.txt"
     startCommand: "streamlit run dashboard.py --server.port 10000 --server.address 0.0.0.0"
     plan: free
+    envVars:
+      - key: SCRAPE_INTERVAL
+        value: "3600"
+      - key: MAX_DOMAINS
+        value: "100"
+
   - type: worker
-    name: website-traffic-scraper
+    name: traffic-scraper
     env: python
     buildCommand: "pip install -r requirements.txt"
     startCommand: "python forex.py"
     plan: free
+    envVars:
+      - key: SCRAPE_INTERVAL
+        value: "3600"
+      - key: MAX_DOMAINS
+        value: "100"
