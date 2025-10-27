@@ -21,7 +21,7 @@ summarizer = LexRankSummarizer()
 # --- Load first 300 domains ---
 with open("azurl.txt", "r", encoding="utf-8") as f:
     domains = [line.strip() for line in f if line.strip()]
-domains_subset = domains[:300]
+domains_subset = domains[:5]
 
 # --- Fetch and clean visible text ---
 def fetch_homepage(domain):
